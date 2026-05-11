@@ -1,3 +1,4 @@
 /University Management System/dist/
 /University Management System/build/
 **/db.properties
+*.class
