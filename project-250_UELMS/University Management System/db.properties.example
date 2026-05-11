@@ -1,0 +1,23 @@
+# Database configuration template for University Management System
+# Copy this file to db.properties and fill in your own values.
+# Do not commit real credentials to git.
+
+# Example Aiven Cloud configuration:
+# db.url=jdbc:mysql://<your-host>:<your-port>/<database>?useSSL=true&requireSSL=true&verifyServerCertificate=false&serverTimezone=UTC
+# db.user=<your-username>
+# =
+
+# Example local MySQL configuration:
+# db.url=jdbc:mysql://localhost:3306/universitymanagementsystem?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+# db.user=root
+# =
+
+# Optionally use environment variables instead of db.properties:
+# DB_URL, DB_USER, DB_PASS
+
+# If you want to supply a custom config path at runtime, use:
+# java -Ddb.config=/path/to/db.properties -jar University_Management_System.jar
+
+db.url=
+db.user=
+=

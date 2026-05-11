@@ -29,12 +29,12 @@ public class Conn implements AutoCloseable {
             // Fallback to default localhost if no configuration found
             if (url == null || url.isEmpty()) {
                 url = "jdbc:mysql://localhost:3306/universitymanagementsystem?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
-                System.out.println("Warning: Using default localhost connection. Configure db.properties for Railway.");
+                System.out.println("Warning: Using default localhost connection. Set DB_URL/DB_USER/DB_PASS or a local db.properties file.");
             }
             if (user == null || user.isEmpty()) {
                 user = "root";
             }
-            if (password == null || password.isEmpty()) {
+            if (password == null) {
                 password = "";
             }
             
@@ -62,7 +62,7 @@ public class Conn implements AutoCloseable {
             System.err.println("Database connection error: " + e.getMessage());
             e.printStackTrace();
             String errorMsg = "Failed to connect to database!\n\nError: " + e.getMessage() + 
-                "\n\nPlease check:\n1. Database server is running\n2. db.properties file is configured correctly\n3. Network connection is available\n4. Database credentials are correct\n5. Firewall is not blocking the connection";
+                "\n\nPlease check:\n1. Database server is running\n2. db.properties or DB_URL/DB_USER/DB_PASS are configured correctly\n3. Network connection is available\n4. Database credentials are correct\n5. Firewall is not blocking the connection";
             System.err.println(errorMsg);
             showErrorDialog(errorMsg);
             throw new IllegalStateException("Failed to connect to database: " + e.getMessage(), e);
@@ -204,183 +204,5 @@ public class Conn implements AutoCloseable {
 
 
 
-/*
-package university.management.system;
-
-import java.sql.*;
-import javax.swing.JOptionPane;
-
-public class Conn {
-    public Connection c;
-    public Statement s;
-    
-    public Conn() {
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            c = DriverManager.getConnection("jdbc:mysql://localhost:3306/universitymanagementsystem", "root", "");
-            s = c.createStatement();
-        } catch (Exception e) {
-            System.out.println("Database connection error: " + e);
-            e.printStackTrace();
-            // Show error message to user
-            JOptionPane.showMessageDialog(null, "Database connection failed!\n\nError: " + e.getMessage(), 
-                                         "Connection Error", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-    
-    // Add a method to check if connection is valid before using it
-    public boolean isConnected() {
-        try {
-            return c != null && !c.isClosed();
-        } catch (SQLException e) {
-            return false;
-        }
-    }
-}
 
 
-*/
-
-
-/*
-
-package university.management.system;
-
-import java.sql.*;
-import javax.swing.JOptionPane;
-import java.util.Vector;
-
-public class Conn {
-    private Connection c;
-    private Statement s;
-    
-    // Connection pool variables
-    private static final int INITIAL_CONNECTIONS = 5;
-    private static final int MAX_CONNECTIONS = 20;
-    private static Vector<Connection> availableConnections = new Vector<>();
-    private static Vector<Connection> usedConnections = new Vector<>();
-    
-    private static String url = "jdbc:mysql://localhost:3306/universitymanagementsystem";
-    private static String username = "root";
-    private static String password = "";
-    
-    // Static block to initialize connection pool
-    static {
-        initializeConnectionPool();
-    }
-    
-    private static void initializeConnectionPool() {
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            for (int i = 0; i < INITIAL_CONNECTIONS; i++) {
-                availableConnections.addElement(createNewConnection());
-            }
-        } catch (Exception e) {
-            System.out.println("Connection pool initialization error: " + e);
-            e.printStackTrace();
-            showErrorDialog("Connection pool initialization failed!\n\nError: " + e.getMessage());
-        }
-    }
-    
-    private static Connection createNewConnection() throws SQLException {
-        return DriverManager.getConnection(url, username, password);
-    }
-    
-    private static synchronized Connection getConnectionFromPool() throws SQLException {
-        if (availableConnections.size() == 0) {
-            if (usedConnections.size() < MAX_CONNECTIONS) {
-                availableConnections.addElement(createNewConnection());
-            } else {
-                throw new SQLException("Maximum pool size reached, no available connections!");
-            }
-        }
-        
-        Connection connection = availableConnections.lastElement();
-        availableConnections.removeElement(connection);
-        usedConnections.addElement(connection);
-        return connection;
-    }
-    
-    private static synchronized void returnConnectionToPool(Connection connection) {
-        if (connection != null) {
-            usedConnections.removeElement(connection);
-            availableConnections.addElement(connection);
-        }
-    }
-    
-    public Conn() {
-        try {
-            c = getConnectionFromPool();
-            s = c.createStatement();
-        } catch (Exception e) {
-            System.out.println("Database connection error: " + e);
-            e.printStackTrace();
-            showErrorDialog("Database connection failed!\n\nError: " + e.getMessage());
-        }
-    }
-    
-    public Statement getStatement() {
-        return s;
-    }
-    
-    public Connection getConnection() {
-        return c;
-    }
-    
-    // Add a method to check if connection is valid before using it
-    public boolean isConnected() {
-        try {
-            return c != null && !c.isClosed();
-        } catch (SQLException e) {
-            return false;
-        }
-    }
-    
-    // Close method to return connection to pool
-    public void close() {
-        try {
-            if (s != null) {
-                s.close();
-            }
-            returnConnectionToPool(c);
-        } catch (SQLException e) {
-            System.out.println("Error closing connection: " + e);
-            e.printStackTrace();
-        }
-    }
-    
-    // Method to close all connections (call this when application exits)
-    public static void closeAllConnections() {
-        closeConnections(availableConnections);
-        closeConnections(usedConnections);
-    }
-    
-    private static void closeConnections(Vector<Connection> connections) {
-        for (Connection conn : connections) {
-            try {
-                if (conn != null && !conn.isClosed()) {
-                    conn.close();
-                }
-            } catch (SQLException e) {
-                System.out.println("Error closing connection: " + e);
-                e.printStackTrace();
-            }
-        }
-        connections.clear();
-    }
-    
-    private static void showErrorDialog(String message) {
-        JOptionPane.showMessageDialog(null, message, 
-                                     "Connection Error", JOptionPane.ERROR_MESSAGE);
-    }
-    
-    // Add a shutdown hook to close all connections when application exits
-    static {
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            closeAllConnections();
-            System.out.println("All database connections closed.");
-        }));
-    }
-}
-
-*/
